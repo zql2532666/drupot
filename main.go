@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net"
+	"os"
 	"net/http"
 	"sync"
 	"time"
@@ -30,6 +31,26 @@ type App struct {
 	Agave      *agave.Client
 }
 
+// get local ip
+func getIP() string{
+	addrs, err := net.InterfaceAddrs()
+	if err != nil {
+		os.Stderr.WriteString("Oops: " + err.Error() + "\n")
+		os.Exit(1)
+	}
+
+	for _, a := range addrs {
+		if ipnet, ok := a.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
+			if ipnet.IP.To4() != nil {
+				// os.Stdout.WriteString(ipnet.IP.String() + "\n")
+				return ipnet.IP.String()
+			}
+		}
+	}
+
+	return "127.0.0.1"
+}
+
 func main() {
 	fmt.Println("///- Running Drupot")
 	fmt.Printf("///- %s\n", Version)
@@ -44,7 +65,7 @@ func main() {
 
 	var app App
 	app.SeenIPLock = &sync.RWMutex{}
-	app.SensorIP = "127.0.0.1" // Default will be overwritten if public IP set to fetch.
+	app.SensorIP = getIP() // Default will be overwritten if public IP set to fetch.
 	app.Config = config
 	app.SeenIP = make(map[string]bool)
 	app.Publish = make(chan []byte)
